@@ -79,10 +79,6 @@ PC_SCORES
 
 res.pca = PCA(ZDATA, graph = FALSE, ncp = 12)
 
-#Create screen plot?
-#Check for modes?
-
-
 p<- fviz_pca_biplot(res.pca,
       repel = TRUE, label = "var",
       col.var = "black",
@@ -90,9 +86,10 @@ p<- fviz_pca_biplot(res.pca,
       pointshape = 19,
       pointsize = 2,
       title = "PCA - Biplot : Groundwater Chemistry",
-      xlab = "PC1 (43%)",
-      ylab = "PC2 (20%)")
+      xlab = "PC 1 (43%)",
+      ylab = "PC 2 (20%)")
 p+ scale_color_brewer(palette="Spectral")
 
-
 ```
+
+
