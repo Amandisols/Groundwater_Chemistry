@@ -1,0 +1,44 @@
+---
+title: "MLR"
+author: "Amanda Pennino"
+date: "12/16/2020"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(tidyverse)
+```
+
+#Can mean groundwater chemistry values be predicted by soil properties that water most often interacts with?
+
+GROUNDWATER DATA AND TRANSFORMATIONS
+```{r}
+
+DATA <- read.csv("~/Documents/VT/Data/MyData/Wells/Chemistry/W3_Chemistry_all2020.csv")
+
+#fill in missing data from MP lab
+DATA$Al_mgL<- ifelse(is.na(DATA$Al_mgL), DATA$Al_MP, DATA$Al_mgL)
+DATA$Fe_mgL<- ifelse(is.na(DATA$Fe_mgL), DATA$Fe_MP, DATA$Fe_mgL)
+DATA$K_mgL<- ifelse(is.na(DATA$K_mgL), DATA$K_MP, DATA$K_mgL)
+DATA$Mg_mgL<- ifelse(is.na(DATA$Mg_mgL), DATA$Mg_MP, DATA$Mg_mgL)
+DATA$Na_mgL<- ifelse(is.na(DATA$Na_mgL), DATA$Na_MP, DATA$Na_mgL)
+DATA$Ca_mgL<- ifelse(is.na(DATA$Ca_mgL), DATA$Ca_MP, DATA$Ca_mgL)
+DATA$Mn_mgL<- ifelse(is.na(DATA$Mn_mgL), DATA$Mn_MP, DATA$Mn_mgL)
+DATA$Zn_mgL<- ifelse(is.na(DATA$Zn_mgL), DATA$Zn_MP, DATA$Zn_mgL)
+
+
+#Refine to wells that have associated soils data.
+DATA1 <- DATA %>%
+       filter(Site %in% c("42_2_s1", "42_3_s1", "42_4_s1", "52_2_s1", "52_3_s1" , "52_4_s1", "86_2_s1", "86_3_s1", "86_4_s1", "D1", "I6", "N1", "N3", "N4", "O1", "O2", "Q1", "Q2", "P2","A5","JD14"))
+
+```
+
+
+```{r}
+
+
+
+```
+    
+#How can we incorporate differences in flow??
