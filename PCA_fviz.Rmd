@@ -1,0 +1,98 @@
+---
+title: "PCA_fviz"
+author: "Amanda Pennino"
+date: "12/16/2020"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(FactoMineR)
+library(factoextra)
+library(lubridate)
+library(RColorBrewer)
+library(readxl)
+```
+
+DATA AND TRANSFORMATIONS
+```{r}
+
+#Updated chemistry 
+DATA <- read.csv("~/Documents/VT/Data/MyData/Wells/Chemistry/W3_Chemistry_all2020.csv")
+DATA$SampleDate <- as.POSIXct(DATA$SampleDate, format = "%m/%d/%y")
+
+#Filter to:
+#Shallow groundwater 
+#Podzol types : E, Bhs, Typical, Bh
+#Prior to 2010
+#A6 anomaly well
+DATA <- DATA %>% filter(GWType %in% c("shallow")
+                        & LocationType %in% c("G1", "G2", "G3", "G5")
+                        & SampleDate > "01/01/2010"
+                        & Site!= "A6")
+
+#fill in missing data from MP lab
+DATA$Al_mgL<- ifelse(is.na(DATA$Al_mgL), DATA$Al_MP, DATA$Al_mgL)
+DATA$Fe_mgL<- ifelse(is.na(DATA$Fe_mgL), DATA$Fe_MP, DATA$Fe_mgL)
+DATA$K_mgL<- ifelse(is.na(DATA$K_mgL), DATA$K_MP, DATA$K_mgL)
+DATA$Mg_mgL<- ifelse(is.na(DATA$Mg_mgL), DATA$Mg_MP, DATA$Mg_mgL)
+DATA$Na_mgL<- ifelse(is.na(DATA$Na_mgL), DATA$Na_MP, DATA$Na_mgL)
+DATA$Ca_mgL<- ifelse(is.na(DATA$Ca_mgL), DATA$Ca_MP, DATA$Ca_mgL)
+DATA$Mn_mgL<- ifelse(is.na(DATA$Mn_mgL), DATA$Mn_MP, DATA$Mn_mgL)
+DATA$Zn_mgL<- ifelse(is.na(DATA$Zn_mgL), DATA$Zn_MP, DATA$Zn_mgL)
+DATA$NH4_NmgL <- ifelse(is.na(DATA$NH4_NmgL), DATA$NH4.mg.N.L, DATA$NH4_NmgL)
+
+sDATA <- DATA %>% 
+          select(LocationType, pH, DOC_mgL, Al_mgL, Fe_mgL, Ca_mgL, Na_mgL, SO4_mgL, Cl_mgL, NO3_mgL, Mg_mgL, SiO2_mgL) %>%
+          na.omit() 
+
+SOIL = as.matrix(sDATA[,1]) #determines matrix size. Change this every time the variables change.
+    
+ZDATA <- DATA %>%
+          select(pH, DOC_mgL, Al_mgL, Fe_mgL, Ca_mgL, Na_mgL, SO4_mgL, Cl_mgL, NO3_mgL, Mg_mgL, SiO2_mgL) %>%
+          na.omit() %>%
+          scale() 
+
+```
+
+
+PCA
+```{r}
+cov <- cov(ZDATA)
+
+eigen <- eigen(cov)
+lam_ordered = eigen$values
+
+#percent variance explained by each PC
+perVE = lam_ordered/sum(lam_ordered)
+perVE
+
+#eigen vectors
+X = as.matrix(eigen$vectors)
+X
+
+#PC scores (position in PC space)
+PC_SCORES = as.matrix(ZDATA)%*%X
+PC_SCORES
+
+
+res.pca = PCA(ZDATA, graph = FALSE, ncp = 12)
+
+#Create screen plot?
+#Check for modes?
+
+
+p<- fviz_pca_biplot(res.pca,
+      repel = TRUE, label = "var",
+      col.var = "black",
+      col.ind = SOIL,
+      pointshape = 19,
+      pointsize = 2,
+      title = "PCA - Biplot : Groundwater Chemistry",
+      xlab = "PC1 (43%)",
+      ylab = "PC2 (20%)")
+p+ scale_color_brewer(palette="Spectral")
+
+
+```
