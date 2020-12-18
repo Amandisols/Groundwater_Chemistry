@@ -8,11 +8,12 @@ output: html_document
 ```{r}
 library(dplyr)
 library(tidyverse)
+library(readxl)
 ```
 
-#Can mean groundwater chemistry values be predicted by soil properties that water most often interacts with?
+#Can mean groundwater chemistry values be predicted by soil properties where the mean water table is?
 
-GROUNDWATER DATA AND TRANSFORMATIONS
+##GROUNDWATER DATA AND TRANSFORMATIONS
 ```{r}
 
 DATA <- read.csv("~/Documents/VT/Data/MyData/Wells/Chemistry/W3_Chemistry_all2020.csv")
@@ -28,17 +29,307 @@ DATA$Mn_mgL<- ifelse(is.na(DATA$Mn_mgL), DATA$Mn_MP, DATA$Mn_mgL)
 DATA$Zn_mgL<- ifelse(is.na(DATA$Zn_mgL), DATA$Zn_MP, DATA$Zn_mgL)
 
 
-#Refine to wells that have associated soils data.
-DATA1 <- DATA %>%
-       filter(Site %in% c("42_2_s1", "42_3_s1", "42_4_s1", "52_2_s1", "52_3_s1" , "52_4_s1", "86_2_s1", "86_3_s1", "86_4_s1", "D1", "I6", "N1", "N3", "N4", "O1", "O2", "Q1", "Q2", "P2","A5","JD14"))
+#Refine to wells that have associated soils data. Excluding 86_2_s1
+DATA <- DATA %>%
+       filter(Site %in% c("42_2_s1", "42_3_s1", "42_4_s1", "52_2_s1", "52_3_s1" , "52_4_s1", 
+                          "86_3_s1", "86_4_s1", "A5", "A6", "D1", "I3", "I6", "JD02", "JD14", 
+                          "JD21", "JD22", "JD23", "JD24", "JD25", "JD26", "K1s", "K10", "K9", 
+                          "N1", "N2", "N3", "N4", "O1", "O2", "P1", "P2", "Q1", "Q2", "T1")
+             & SampleDate > "01/01/2010")
+
+#solute of interest
+WATER_DOC <- DATA %>%
+  group_by(Site) %>%
+  summarise(mean(DOC_mgL, na.rm = TRUE))
+
+WATER_DOC <- as.matrix(WATER_DOC[,2])
+WATER_DOC <- as.numeric(WATER_DOC)
 
 ```
 
-
+##SOIL DATA, DEFINE INDEPENDENT VARIABLES
 ```{r}
 
-#testimgtest
+SOILS <- read_excel("~/Documents/VT/Data/MyData/Soils/AvgWT_SoilData.xlsx",  sheet = 1)
+SOILS$pH_CaCl<- ifelse(is.na(SOILS$pH_CaCl), SOILS$PH_H2O, SOILS$pH_CaCl) #fill in missing pH data.
+SOILS <- SOILS %>% filter(SoilsData == "x")
+
+#all all extractable bases together?
+
+#Make sure the same number of wells means
+C_PCT = as.matrix(SOILS$C_PCT)
+PH = as.matrix(SOILS$pH_CaCl)
+AL_O = as.matrix(SOILS$Al_O)
+FE_O = as.matrix(SOILS$Fe_O)
 
 ```
+
+##MLR LONG-HAND
+```{r}
+
+#Are any variables multicolinear and should be excluded from our pool of independent variables?
+#Correlation matrix
+corX<- cor(cbind(C_PCT, PH, AL_O, FE_O))
+
+#inverse Matrix
+library(MASS)
+INV <- ginv(corX)
+
+#VIF values, make sure all are below 5. If so, remove largest VIF variable and repeat.
+VIF <- diag(INV)
+VIF
+
+#DOC Models
+#model 1: DOC ~ C_PCT + PH + AL_O + FE_O
+#model 2: DOC ~ C_PCT + PH + AL_O 
+#model 3: DOC ~ C_PCT + PH + FE_O
+#model 4: DOC ~ C_PCT + AL_O + FE_O
+#model 5: DOC ~ C_PCT + AL_O
+#model 6: DOC ~ AL_O + FE_O
+#model 7: DOC ~ AL_O + PH
+#model 8: DOC ~ C_PCT
+
+#Find the best fit coefficients
+library(neldermead)
+library(pracma)
+
+ONES <- ones(length(C_PCT), 1) #matrix size for intercept (B0)
+
+#create a matrix of independent variables for each model
+M1X <- cbind(ONES, C_PCT , PH , AL_O , FE_O ) #B0, B1, B2, B3
+M2X <- cbind(ONES, C_PCT , PH , AL_O ) 
+M3X <- cbind(ONES, C_PCT , PH , FE_O)
+M4X <- cbind(ONES, C_PCT , AL_O , FE_O)
+M5X <- cbind(ONES, C_PCT , AL_O)
+M6X <- cbind(ONES, AL_O , FE_O )
+M7X <- cbind(ONES, AL_O , PH)
+M8X <- cbind(ONES, C_PCT)
+
+#DEP = dependent variable
+#MX = matrix of independent variables 
+#BETAs = vector of coefficients
+#s2 = predefined variance to facilitate convergence sum(y - bestfit line)^2/n
+
+#sample variance 
+n = nrow(as.matrix(WATER_DOC))
+s2 = function(BETA, DEP, MX)
+{ BMAT = tcrossprod(rep(1,n), BETA)
+  sum((DEP - (rowSums(BMAT*MX)))^2)/n }
+
+
+#negloglik for normally distributed residuals
+lnL_mlr = function(BETA, DEP, MX)
+{BMAT = tcrossprod(rep(1,n), BETA)
+  -1 * (-n/2 * log(2*pi*s2(BETA, DEP, MX)) - (1/(2*s2(BETA, DEP, MX))) *
+  (sum((DEP - (rowSums(BMAT*MX)))^2)) )}
+
+#set tolerance low to avoid local minima and fun eval high
+detach("package:pracma", unload = TRUE)
+library(optimbase)
+options <- optimset(TolX=1e-20,
+                    MaxIter = 1000,
+                    MaxFunEvals = 100000)
+
+#If it fails at OUT1, then there's a NA somewhere, or not in matrix form.
+#Model 1:
+M1 = function(BETA) {lnL_mlr(BETA, WATER_DOC, M1X)}
+OUT1 = fminsearch(M1, c(0, 0, 0, 0, 0), options) #set to number of BETAs, gives it 4 guesses
+B_M1 = OUT1$optbase$xopt
+nlnL_M1 = OUT1$optbase$fopt
+
+#Model 2:
+M2 = function(BETA) {lnL_mlr(BETA, WATER_DOC, M2X)}
+OUT2 = fminsearch(M2, c(0, 0, 0, 0), options) 
+B_M2 = OUT2$optbase$xopt
+nlnL_M2 = OUT2$optbase$fopt
+
+#Model 3:
+M3 = function(BETA) {lnL_mlr(BETA, WATER_DOC, M3X)}
+OUT3 = fminsearch(M3, c(0, 0, 0, 0), options) 
+B_M3 = OUT3$optbase$xopt
+nlnL_M3 = OUT3$optbase$fopt
+
+#Model 4:
+M4 = function(BETA) {lnL_mlr(BETA, WATER_DOC, M4X)}
+OUT4 = fminsearch(M4, c(0, 0, 0, 0), options) 
+B_M4 = OUT4$optbase$xopt
+nlnL_M4 = OUT4$optbase$fopt
+
+#Model 5:
+M5= function(BETA) {lnL_mlr(BETA, WATER_DOC, M5X)}
+OUT5 = fminsearch(M5, c(0, 0, 0), options) 
+B_M5 = OUT5$optbase$xopt
+nlnL_M5 = OUT5$optbase$fopt
+
+#Model 6:
+M6= function(BETA) {lnL_mlr(BETA, WATER_DOC, M6X)}
+OUT6 = fminsearch(M6, c(0, 0, 0), options) 
+B_M6 = OUT6$optbase$xopt
+nlnL_M6 = OUT6$optbase$fopt
+
+#Model 7:
+M7= function(BETA) {lnL_mlr(BETA, WATER_DOC, M7X)}
+OUT7 = fminsearch(M7, c(0, 0, 0), options) 
+B_M7 = OUT7$optbase$xopt
+nlnL_M7 = OUT7$optbase$fopt
+
+#Model 8:
+M8= function(BETA) {lnL_mlr(BETA, WATER_DOC, M8X)}
+OUT8 = fminsearch(M8, c(0, 0), options) 
+B_M8 = OUT8$optbase$xopt
+nlnL_M8 = OUT8$optbase$fopt
+
+
+#Calculate AICc (corrected) for each model and rank them.
+AICc = function(lnL, k) { (2*k - 2*lnL) +
+                              ((2*k*(k+1))/(n-k-1)) }  #k = number of BETAs
+
+
+#Setup a vector of log likelihoods and k's for each model and evaluate AICc 
+lnL_models = -1*c(nlnL_M1, nlnL_M2, nlnL_M3, nlnL_M4, nlnL_M5, nlnL_M6, nlnL_M7, nlnL_M8) 
+K = c(5,4,4,4,3,3,3,2)
+
+#8 models
+AICc_MOD = matrix(NA, nrow=1, ncol=8)
+for (i in 1:8) {
+        AICc_MOD[1,i] = AICc(lnL_models[i],K[i])
+}
+
+AICc_MOD  #Which one has the lowest AIC? Are any within 2 AIC units within eachother (family of best fit)?
+
+
+#Estimate AIC weights. 
+#Calculate the difference between each model and the best model (min AICc_MOD)
+delta_AICc_mat = AICc_MOD - min(AICc_MOD)
+
+#Weights
+AICcw = function(delta_AICcI,deltaAICcr)
+    {exp(-1/2*delta_AICcI)/
+    sum(exp(-1/2*deltaAICcr))}
+
+Weights = matrix(NA,nrow = 1,ncol = 8)
+for (i in 1:8)
+    {Weights[1,i] = AICcw(delta_AICc_mat[i],
+    delta_AICc_mat)}
+
+#What is the probability that the best-fit model is truly best?
+Weights
+
+
+#Decide if the best-fit model is actually a good model (explains a high fraction of the variance)
+#Calculate the r^2 for each fit (1-SSE of the residual about the best-fit line div by the SSE of the dep. variable) 
+
+#SSE = SUM[(YOBS-YPRED)^2] -> numerator
+#VAR of y = SUM[(Y-meanY)^2] -> denominator
+
+R2 =function(BETA,DEP,MX)
+    {BMAT = tcrossprod(rep(1,n),BETA)
+    1-((sum((DEP -(rowSums(BMAT*MX,2)))^2))/
+    (sum((DEP-mean(DEP))^2))) }
+
+R2_M1 = R2(B_M1,as.matrix(WATER_DOC),M1X)
+R2_M2 = R2(B_M2,as.matrix(WATER_DOC),M2X)
+R2_M3 = R2(B_M3,as.matrix(WATER_DOC),M3X)
+R2_M4 = R2(B_M4,as.matrix(WATER_DOC),M4X)
+R2_M5 = R2(B_M5,as.matrix(WATER_DOC),M5X)
+R2_M6 = R2(B_M6,as.matrix(WATER_DOC),M6X)
+R2_M7 = R2(B_M7,as.matrix(WATER_DOC),M7X)
+R2_M8 = R2(B_M8,as.matrix(WATER_DOC),M8X)
+
+
+#Does the best-model explain enough variance to be considered a good model?
+
+```
+
+##Faster MLR code.
+```{r}
+#DOC Models
+#model 1: DOC ~ C_PCT + PH + AL_O + FE_O
+#model 2: DOC ~ C_PCT + PH + AL_O 
+#model 3: DOC ~ C_PCT + PH + FE_O
+#model 4: DOC ~ C_PCT + AL_O + FE_O
+#model 5: DOC ~ C_PCT + AL_O
+#model 6: DOC ~ AL_O + FE_O
+#model 7: DOC ~ AL_O + PH
+#model 8: DOC ~ C_PCT
+
+MODEL1 = lm(WATER_DOC~
+              C_PCT + PH + AL_O + FE_O)
+MODEL2 = lm(WATER_DOC~
+              C_PCT + PH + AL_O)
+MODEL3 = lm(WATER_DOC~
+              C_PCT + PH + FE_O)
+MODEL4 = lm(WATER_DOC~
+              C_PCT + AL_O + FE_O)
+MODEL5 = lm(WATER_DOC~
+              C_PCT + AL_O)
+MODEL6 = lm(WATER_DOC~
+              AL_O + FE_O)
+MODEL7 = lm(WATER_DOC~
+              AL_O + PH)
+MODEL8 = lm(WATER_DOC~
+              C_PCT)
+
+
+#use summary to view model output
+summary(MODEL1)
+summary(MODEL2)
+summary(MODEL3)
+summary(MODEL4)
+summary(MODEL5)
+summary(MODEL6)
+summary(MODEL7)
+summary(MODEL8)
+
+Bval_model1 = MODEL1$coefficients
+Bval_model2 = MODEL2$coefficients
+Bval_model3 = MODEL3$coefficients
+Bval_model4 = MODEL4$coefficients
+Bval_model5 = MODEL5$coefficients
+Bval_model6 = MODEL6$coefficients
+Bval_model7 = MODEL7$coefficients
+Bval_model8 = MODEL8$coefficients
+
+R2_model1 = summary(MODEL1)$r.squared
+R2_model2 = summary(MODEL2)$r.squared
+R2_model3 = summary(MODEL3)$r.squared
+R2_model4 = summary(MODEL4)$r.squared
+R2_model5 = summary(MODEL5)$r.squared
+R2_model6 = summary(MODEL6)$r.squared
+R2_model7 = summary(MODEL7)$r.squared
+R2_model8 = summary(MODEL8)$r.squared
+
+#LOAD PACKAGE AICcmodavg 
+#(OR USE BASE FUNCTION AICc)
+library(AICcmodavg)
+lnL_M1 = as.matrix(logLik(MODEL1))
+AICc_model1 = AICc(lnL_M1, k = 5)
+
+lnL_M2 = as.matrix(logLik(MODEL2))
+AICc_model2 = AICc(lnL_M2, k = 4)
+
+lnL_M3 = as.matrix(logLik(MODEL3))
+AICc_model3 = AICc(lnL_M3, k = 4)
+
+lnL_M4 = as.matrix(logLik(MODEL4))
+AICc_model4 = AICc(lnL_M4, k = 4)
+
+lnL_M5 = as.matrix(logLik(MODEL5))
+AICc_model5 = AICc(lnL_M5, k = 3)
+
+lnL_M6 = as.matrix(logLik(MODEL6))
+AICc_model6 = AICc(lnL_M6, k = 3)
+
+lnL_M7 = as.matrix(logLik(MODEL7))
+AICc_model7 = AICc(lnL_M7, k = 3)
+
+lnL_M8 = as.matrix(logLik(MODEL8))
+AICc_model8 = AICc(lnL_M8, k = 2)
+```
+
+
+
+
+
+
     
-#How can we incorporate differences in flow??
