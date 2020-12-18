@@ -90,6 +90,7 @@ p<- fviz_pca_biplot(res.pca,
       ylab = "PC 2 (20%)")
 p+ scale_color_brewer(palette="Spectral")
 
+
 ```
 
 
