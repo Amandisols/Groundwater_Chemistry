@@ -1,0 +1,65 @@
+---
+title: "Funkin' around"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+
+```
+
+
+```{r}
+
+DATA <- read_csv("W3_Chemistry_all2020.csv")
+
+#By Well
+MEANS <- DATA %>%
+  group_by(Site) %>%
+  filter(GWType == "shallow") %>%
+  summarise(Na = mean(Na_mgL, na.rm = TRUE),
+            Mg = mean(Mg_mgL, na.rm = TRUE),
+            Al = mean(Al_mgL, na.rm = TRUE),
+            Ca = mean(Ca_mgL, na.rm = TRUE),
+            Fe = mean(Fe_mgL, na.rm = TRUE),
+            Fe = mean(Fe_mgL, na.rm = TRUE),
+            Mn = mean(Mn_mgL, na.rm = TRUE))
+DATA %>%
+  count(Site)
+
+
+#By HPU
+MEANShpu <- DATA %>%
+  filter(GWType == "shallow" & Site != "A6") %>%
+  group_by(LocationType) %>%
+  summarise(Na = mean(Na_mgL, na.rm = TRUE),
+            Mg = mean(Mg_mgL, na.rm = TRUE),
+            Al = mean(Al_mgL, na.rm = TRUE),
+            Ca = mean(Ca_mgL, na.rm = TRUE),
+            Fe = mean(Fe_mgL, na.rm = TRUE),
+            Fe = mean(Fe_mgL, na.rm = TRUE),
+            Mn = mean(Mn_mgL, na.rm = TRUE))
+
+DATAs <- DATA %>%
+  filter(GWType == "shallow" & Site != "A6") 
+
+DATA %>%
+  count(LocationType)
+
+
+
+#Weir
+MEANStype <- DATA %>%
+  filter(GWType == "weir") %>%
+  summarise(Na = mean(Na_mgL, na.rm = TRUE),
+            Mg = mean(Mg_mgL, na.rm = TRUE),
+            Al = mean(Al_mgL, na.rm = TRUE),
+            Ca = mean(Ca_mgL, na.rm = TRUE),
+            Fe = mean(Fe_mgL, na.rm = TRUE),
+            Fe = mean(Fe_mgL, na.rm = TRUE),
+            Mn = mean(Mn_mgL, na.rm = TRUE))
+
+DATA %>%
+  count(GWType)
+
+```

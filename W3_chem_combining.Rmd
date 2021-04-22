@@ -13,13 +13,13 @@ Output dataset: All_W3_Chemistry
 
 ```{r}
 library(readxl)
-library(dplyr)
-require(writexl)
+library(tidyverse)
+
 ```
 
 Bring in both chemistry datasets.
 ```{r}
-DATA_pennino <-read_excel("~/Documents/VT/Data/MyData/Wells/Chemistry/Pennino_chemistry.xlsx")
+DATA_pennino <-read_csv("data/processed/Pennino_Chemistry.csv")
 
 DATA_leg <-read_excel("~/Documents/VT/Data/Bailey/WS3_chem_200130.xlsx", sheet = "DATA")
 ```
@@ -124,7 +124,8 @@ colnames(wells_c)
 ```
 
 ```{r}
+out_dir <- "~/Documents/VT/Data/MyData/Code/Groundwater_Chemistry/data/processed"
 
-write.csv(wells_c, "~/Documents/VT/Data/MyData/Wells/Chemistry/W3_Chemistry_all2020.csv")
+write_csv(wells_c, paste(out_dir, "W3_Chemistry_all2020.csv", sep = "/"))
 
 ```

@@ -12,15 +12,14 @@ Output dataset: Pennino_chemistry
 
 ```{r}
 library(readxl)
-library(dplyr)
+library(tidyverse)
 library(writexl)
 
 ```
 
 ```{r}
 
-DATA_raw <-read_excel("~/Documents/VT/Data/MyData/Wells/Chemistry/Pennino_WaterChem_raw.xlsx", sheet = "All")
-
+DATA_raw <-read_excel("data/raw/Pennino_WaterChem_raw.xlsx", sheet = "All")
 ```
 
 Add well location type
@@ -213,7 +212,10 @@ DATA_raw$Y <- ifelse( DATA_raw$Site == "42_2_s1", "4871231.05",
 Write new .csv to use and for updating the google drive
 ```{r}
 
-write_xlsx(DATA_raw, "~/Documents/VT/Data/MyData/Wells/Chemistry/Pennino_Chemistry.xlsx")
+out_dir <- "~/Documents/VT/Data/MyData/Code/Groundwater_Chemistry/data/processed"
+
+write_csv(DATA_raw, paste(out_dir, "Pennino_Chemistry.csv", sep = "/"))
+
 
 ```
 
