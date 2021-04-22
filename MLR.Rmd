@@ -45,6 +45,16 @@ WATER_DOC <- DATA %>%
 WATER_DOC <- as.matrix(WATER_DOC[,2])
 WATER_DOC <- as.numeric(WATER_DOC)
 
+
+
+#solute of interest
+WATER_NA <- DATA %>%
+  group_by(Site) %>%
+  summarise(mean(Na_mgL, na.rm = TRUE))
+
+WATER_NA <- as.matrix(WATER_NA[,2])
+WATER_NA <- as.numeric(WATER_NA)
+
 ```
 
 ##SOIL DATA, DEFINE INDEPENDENT VARIABLES
@@ -61,8 +71,11 @@ C_PCT = as.matrix(SOILS$C_PCT)
 PH = as.matrix(SOILS$pH_CaCl)
 AL_O = as.matrix(SOILS$Al_O)
 FE_O = as.matrix(SOILS$Fe_O)
+NA_EP = as.matrix(SOILS$Na_NH4OAc)
+FE_D = as.matrix(SOILS$Fe_D)
 
 ```
+
 
 ##MLR LONG-HAND
 ```{r}
@@ -328,7 +341,65 @@ AICc_model8 = AICc(lnL_M8, k = 2)
 ```
 
 
+```{r}
 
+corX<- cor(cbind(C_PCT, PH, FE_D, NA_EP))
+
+#inverse Matrix
+library(MASS)
+INV <- ginv(corX)
+
+#VIF values, make sure all are below 5. If so, remove largest VIF variable and repeat.
+VIF <- diag(INV)
+VIF
+
+#Sodium Model
+#model 1: NA ~ C_PCT + PH + NA_EP + FE_D
+#model 2: NA ~ C_PCT + NA_EP 
+#model 3: NA ~ C_PCT + PH + NA_EP 
+#model 4: NA ~ PH + NA_EP + FE_D
+#model 5: NA ~ PH + NA_EP
+#model 6: NA ~ NA_EP
+
+MODEL1 = lm(WATER_NA~
+              C_PCT + PH + NA_EP + FE_D)
+MODEL2 = lm(WATER_NA~
+              C_PCT + NA_EP)
+MODEL3 = lm(WATER_NA~
+              C_PCT + PH + NA_EP )
+MODEL4 = lm(WATER_NA~
+              PH + NA_EP + FE_D)
+MODEL5 = lm(WATER_NA~
+              PH + NA_EP)
+MODEL6 = lm(WATER_NA~
+              NA_EP)
+
+
+
+summary(MODEL1)
+summary(MODEL2)
+summary(MODEL3)
+summary(MODEL4)
+summary(MODEL5)
+summary(MODEL6)
+
+
+Bval_model1 = MODEL1$coefficients
+Bval_model2 = MODEL2$coefficients
+Bval_model3 = MODEL3$coefficients
+Bval_model4 = MODEL4$coefficients
+Bval_model5 = MODEL5$coefficients
+Bval_model6 = MODEL6$coefficients
+
+
+R2_model1 = summary(MODEL1)$r.squared
+R2_model2 = summary(MODEL2)$r.squared
+R2_model3 = summary(MODEL3)$r.squared
+R2_model4 = summary(MODEL4)$r.squared
+R2_model5 = summary(MODEL5)$r.squared
+R2_model6 = summary(MODEL6)$r.squared
+
+```
 
 
 

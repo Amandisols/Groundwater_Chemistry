@@ -1,0 +1,220 @@
+---
+title: "WaterChemistry_editing"
+author: "Amanda Pennino"
+date: "10/5/2020"
+output: html_document
+---
+
+The purpose of this dataset is to take raw data that has been analyzed at the Durham Lab, and clean them up for use. 
+
+Input dataset: Pennino_Durham
+Output dataset: Pennino_chemistry
+
+```{r}
+library(readxl)
+library(dplyr)
+library(writexl)
+
+```
+
+```{r}
+
+DATA_raw <-read_excel("~/Documents/VT/Data/MyData/Wells/Chemistry/Pennino_WaterChem_raw.xlsx", sheet = "All")
+
+```
+
+Add well location type
+```{r}
+  # 1	ephemeral stream	
+  # 2	intermittent stream	
+  # 3	perennial stream	
+  # 4	seep (considered to be a groundwater discharge point)	
+  # 5	sampled as possible seep but considered to be return of streamwater from bank exchange
+  # 6 sampled right above weir 
+  # G0	bedrock histosol/ O podzol groundwater	
+  # G1	E podzol groundwater	
+  # G2	Bhs podzol groundwater	
+  # G3	typical podzol groundwater	
+  # G4	bimodal podzol groundwater	
+  # G5	Bh podzol groundwater	
+  # G6	riparian groundwater 	
+  # G7	bedrock groundwater 
+  # G8	Inceptisol groundwater
+
+
+DATA_raw$LocationType <- ifelse( DATA_raw$Site == "42_2_s1", "G1",
+                       ifelse( DATA_raw$Site == "42_3_s1", "G2",
+                       ifelse( DATA_raw$Site == "42_4_s1", "G3",
+                       ifelse( DATA_raw$Site == "42_4_d1", "G3",
+                       ifelse( DATA_raw$Site == "42_4_d2", "G3",
+                       ifelse( DATA_raw$Site == "52_2_s1", "G1",
+                       ifelse( DATA_raw$Site == "52_3_s1", "G2",
+                       ifelse( DATA_raw$Site == "52_4_s1", "G2",
+                       ifelse( DATA_raw$Site == "52_4_d1", "G4",
+                       ifelse( DATA_raw$Site == "52_4_d2", "G3", 
+                       ifelse( DATA_raw$Site == "86_2_s1", "G1",
+                       ifelse( DATA_raw$Site == "86_3_s1", "G2",
+                       ifelse( DATA_raw$Site == "86_4_s1", "G3",
+                       ifelse( DATA_raw$Site == "86_3_d1", "G7",
+                       ifelse( DATA_raw$Site == "86_3_d2", "G2",
+                       ifelse( DATA_raw$Site == "V2", "G2",
+                       ifelse( DATA_raw$Site == "N1", "G1",
+                       ifelse( DATA_raw$Site == "K8", "G4",
+                       ifelse( DATA_raw$Site == "K1d", "G5",
+                       ifelse( DATA_raw$Site == "A7", "G3",
+                       ifelse( DATA_raw$Site == "D1", "G5",
+                       ifelse( DATA_raw$Site == "E0E", "1",
+                       ifelse( DATA_raw$Site == "E0A", "1",
+                       ifelse( DATA_raw$Site == "E4D", "1",
+                       ifelse( DATA_raw$Site == "E4B", "1",
+                       ifelse( DATA_raw$Site == "PB25", "1",
+                       ifelse( DATA_raw$Site == "PB26", "1",
+                       ifelse( DATA_raw$Site == "PB27", "1",
+                       ifelse( DATA_raw$Site == "PB28", "1",
+                       ifelse( DATA_raw$Site == "S24", "1",
+                       ifelse( DATA_raw$Site == "W4A", "1",
+                       ifelse( DATA_raw$Site == "W4B", "1",
+                       ifelse( DATA_raw$Site == "W4C", "1",
+                       ifelse( DATA_raw$Site == "PB18", "3",
+                       ifelse( DATA_raw$Site == "Seep3a", "4", 
+                       ifelse( DATA_raw$Site == "Weir3", "6",
+                               NA ))))))))))))))))))))))))))))))))))))
+
+
+```
+
+Groundwater type 
+```{r}
+#shallow
+#deep into C
+#on bedrock
+#stream
+#seep
+#weir
+
+DATA_raw$GWType <- ifelse( DATA_raw$Site == "42_2_s1", "shallow",
+                       ifelse( DATA_raw$Site == "42_3_s1", "shallow",
+                       ifelse( DATA_raw$Site == "42_4_s1", "shallow",
+                       ifelse( DATA_raw$Site == "42_4_d1", "R_surface",
+                       ifelse( DATA_raw$Site == "42_4_d2", "deep_intoC",
+                       ifelse( DATA_raw$Site == "52_2_s1", "shallow",
+                       ifelse( DATA_raw$Site == "52_3_s1", "shallow",
+                       ifelse( DATA_raw$Site == "52_4_s1", "shallow",
+                       ifelse( DATA_raw$Site == "52_4_d1", "R_surface",
+                       ifelse( DATA_raw$Site == "52_4_d2", "deep_intoC", #Also into R?
+                       ifelse( DATA_raw$Site == "86_2_s1", "shallow",
+                       ifelse( DATA_raw$Site == "86_3_s1", "shallow",
+                       ifelse( DATA_raw$Site == "86_4_s1", "shallow",
+                       ifelse( DATA_raw$Site == "86_3_d1", "into_R",
+                       ifelse( DATA_raw$Site == "86_3_d2", "R_surface",
+                       ifelse( DATA_raw$Site == "V2", "deep_intoC",
+                       ifelse( DATA_raw$Site == "N1", "shallow",
+                       ifelse( DATA_raw$Site == "K8", "deep_intoC",
+                       ifelse( DATA_raw$Site == "K1d", "deep_intoC",
+                       ifelse( DATA_raw$Site == "A7", "deep_intoC",
+                       ifelse( DATA_raw$Site == "D1", "shallow",
+                       ifelse( DATA_raw$Site == "E0E", "stream",
+                       ifelse( DATA_raw$Site == "E0A", "stream",
+                       ifelse( DATA_raw$Site == "E4D", "stream",
+                       ifelse( DATA_raw$Site == "E4B", "stream",
+                       ifelse( DATA_raw$Site == "PB25", "stream",
+                       ifelse( DATA_raw$Site == "PB26", "stream",
+                       ifelse( DATA_raw$Site == "PB27", "stream",
+                       ifelse( DATA_raw$Site == "PB28", "stream",
+                       ifelse( DATA_raw$Site == "S24", "stream",
+                       ifelse( DATA_raw$Site == "W4A", "stream",
+                       ifelse( DATA_raw$Site == "W4B", "stream",
+                       ifelse( DATA_raw$Site == "W4C", "stream",
+                       ifelse( DATA_raw$Site == "PB18", "stream",
+                       ifelse( DATA_raw$Site == "Seep3a", "seep", 
+                       ifelse( DATA_raw$Site == "Weir3", "weir",
+                               NA ))))))))))))))))))))))))))))))))))))
+
+
+```
+
+Add locations
+```{r}
+
+#Need locations for E0A and the Weir
+
+DATA_raw$X <- ifelse( DATA_raw$Site == "42_2_s1", "281626.546",
+                       ifelse( DATA_raw$Site == "42_3_s1", "281637.4851",
+                       ifelse( DATA_raw$Site == "42_4_s1", "281660.3829",
+                       ifelse( DATA_raw$Site == "42_4_d1", "281655.004",
+                       ifelse( DATA_raw$Site == "42_4_d2", "281655.033",
+                       ifelse( DATA_raw$Site == "52_2_s1", "281790.4303",
+                       ifelse( DATA_raw$Site == "52_3_s1", "281790.3689",
+                       ifelse( DATA_raw$Site == "52_4_s1", "281788.928",
+                       ifelse( DATA_raw$Site == "52_4_d1", "281789.7025",
+                       ifelse( DATA_raw$Site == "52_4_d2", "281762.5976",
+                       ifelse( DATA_raw$Site == "86_2_s1", "281916.1992",
+                       ifelse( DATA_raw$Site == "86_3_s1", "281846.3742",
+                       ifelse( DATA_raw$Site == "86_4_s1", "281815.4747",
+                       ifelse( DATA_raw$Site == "86_3_d1", "281859.9889",
+                       ifelse( DATA_raw$Site == "86_3_d2", "281858.8713",
+                       ifelse( DATA_raw$Site == "V2", "281641.4801",
+                       ifelse( DATA_raw$Site == "N1", "281655.4060",
+                       ifelse( DATA_raw$Site == "K8", "281684.7810",
+                       ifelse( DATA_raw$Site == "K1d", "281686.6880",
+                       ifelse( DATA_raw$Site == "A7", "281757.2500",
+                       ifelse( DATA_raw$Site == "D1", "281751.0620",
+                       ifelse( DATA_raw$Site == "E4D", "281791.7519",
+                       ifelse( DATA_raw$Site == "E4B", "281741.5651",
+                       ifelse( DATA_raw$Site == "S24", "281691.5",
+                       ifelse( DATA_raw$Site == "W4A", "281704.9512",
+                       ifelse( DATA_raw$Site == "W4B", "281700.5",
+                       ifelse( DATA_raw$Site == "W4C", "281695.5545",
+                       ifelse( DATA_raw$Site == "PB18", "281721.5",
+                       ifelse( DATA_raw$Site == "EOA", "281571.8791",
+                       ifelse( DATA_raw$Site == "PB25", "281791.7747",
+                       ifelse( DATA_raw$Site == "PB27", "281795.5",
+                       ifelse( DATA_raw$Site == "PB28", "281795.5",
+                       ifelse( DATA_raw$Site == "Seep3a", "281700.723",
+                               NA )))))))))))))))))))))))))))))))))
+
+DATA_raw$Y <- ifelse( DATA_raw$Site == "42_2_s1", "4871231.05",
+                       ifelse( DATA_raw$Site == "42_3_s1", "4871215.022",
+                       ifelse( DATA_raw$Site == "42_4_s1", "4871158.234",
+                       ifelse( DATA_raw$Site == "42_4_d1", "4871175.786",
+                       ifelse( DATA_raw$Site == "42_4_d2", "4871176.429",
+                       ifelse( DATA_raw$Site == "52_2_s1", "4871243.602",
+                       ifelse( DATA_raw$Site == "52_3_s1", "4871221.759",
+                       ifelse( DATA_raw$Site == "52_4_s1", "4871187.1",
+                       ifelse( DATA_raw$Site == "52_4_d1", "4871168.696",
+                       ifelse( DATA_raw$Site == "52_4_d2", "4871095.145",
+                       ifelse( DATA_raw$Site == "86_2_s1", "4870653.169",
+                       ifelse( DATA_raw$Site == "86_3_s1", "4870628.727",
+                       ifelse( DATA_raw$Site == "86_4_s1", "4870632.36",
+                       ifelse( DATA_raw$Site == "86_3_d1", "4870634.652",
+                       ifelse( DATA_raw$Site == "86_3_d2", "4870633.421",
+                       ifelse( DATA_raw$Site == "V2", "4871207.708",
+                       ifelse( DATA_raw$Site == "N1", "4871219.0000",
+                       ifelse( DATA_raw$Site == "K8", "4871117.0000",
+                       ifelse( DATA_raw$Site == "K1d", "4871076.5000",
+                       ifelse( DATA_raw$Site == "A7", "4870606.0000",
+                       ifelse( DATA_raw$Site == "D1", "4870859.5000",
+                       ifelse( DATA_raw$Site == "E4D", "4870863.5",
+                       ifelse( DATA_raw$Site == "E4B", "4870839.5",
+                       ifelse( DATA_raw$Site == "S24", "4871020.796",
+                       ifelse( DATA_raw$Site == "W4A", "4870945.049",
+                       ifelse( DATA_raw$Site == "W4B", "4870982.304",
+                       ifelse( DATA_raw$Site == "W4C", "4870998.446",
+                       ifelse( DATA_raw$Site == "PB18", "4870886.257",
+                       ifelse( DATA_raw$Site == "EOA", "4870478.5",
+                       ifelse( DATA_raw$Site == "PB25", "4871126.775",
+                       ifelse( DATA_raw$Site == "PB27", "4871172.805",
+                       ifelse( DATA_raw$Site == "PB28", "4871212.357",
+                       ifelse( DATA_raw$Site == "Seep3a", "4871089.361", 
+                               NA )))))))))))))))))))))))))))))))))
+
+```
+
+Write new .csv to use and for updating the google drive
+```{r}
+
+write_xlsx(DATA_raw, "~/Documents/VT/Data/MyData/Wells/Chemistry/Pennino_Chemistry.xlsx")
+
+```
+
+

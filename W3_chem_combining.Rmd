@@ -1,0 +1,130 @@
+---
+title: "WaterChemistry_combining"
+author: "Amanda Pennino"
+date: "10/6/2020"
+output: html_document
+---
+The purpose of this code is to combine 2019-2020 chemsitry with watershed 3 legacy chemistry and into a useful format for analysis.
+
+Input datasets: Pennino_chemistry & W3_legacy
+Output dataset: All_W3_Chemistry
+
+
+
+```{r}
+library(readxl)
+library(dplyr)
+require(writexl)
+```
+
+Bring in both chemistry datasets.
+```{r}
+DATA_pennino <-read_excel("~/Documents/VT/Data/MyData/Wells/Chemistry/Pennino_chemistry.xlsx")
+
+DATA_leg <-read_excel("~/Documents/VT/Data/Bailey/WS3_chem_200130.xlsx", sheet = "DATA")
+```
+
+Rename columns, add data.
+```{r}
+names(DATA_leg)[names(DATA_leg) == "Na-MP"] <- "Na_MP"
+names(DATA_leg)[names(DATA_leg) == "Mg-MP"] <- "Mg_MP"
+names(DATA_leg)[names(DATA_leg) == "Al-MP"] <- "Al_MP"
+names(DATA_leg)[names(DATA_leg) == "Si-MP"] <- "Si_MP"
+names(DATA_leg)[names(DATA_leg) == "P-MP"] <- "P_MP"
+names(DATA_leg)[names(DATA_leg) == "K-MP"] <- "K_MP"
+names(DATA_leg)[names(DATA_leg) == "Ca-MP"] <- "Ca_MP"
+names(DATA_leg)[names(DATA_leg) == "Mn-MP"] <- "Mn_MP"
+names(DATA_leg)[names(DATA_leg) == "Fe-MP"] <- "Fe_MP"
+names(DATA_leg)[names(DATA_leg) == "Zn-MP"] <- "Zn_MP"
+names(DATA_leg)[names(DATA_leg) == "Rb-MP"] <- "Rb_MP"
+names(DATA_leg)[names(DATA_leg) == "Sr-MP"] <- "Sr_MP"
+names(DATA_leg)[names(DATA_leg) == "Ba-MP"] <- "Ba_MP"
+names(DATA_leg)[names(DATA_leg) == "Pb-MP"] <- "Pb_MP"
+
+names(DATA_leg)[names(DATA_leg) == "Na mg/L"] <- "Na_mgL"
+names(DATA_leg)[names(DATA_leg) == "Mg mg/L"] <- "Mg_mgL"
+names(DATA_leg)[names(DATA_leg) == "Al mg/L"] <- "Al_mgL"
+names(DATA_leg)[names(DATA_leg) == "Si mg/L"] <- "SiO2_mgL"
+names(DATA_leg)[names(DATA_leg) == "K mg/L"] <- "K_mgL"
+names(DATA_leg)[names(DATA_leg) == "Ca mg/L"] <- "Ca_mgL"
+names(DATA_leg)[names(DATA_leg) == "Mn mg/L"] <- "Mn_mgL"
+names(DATA_leg)[names(DATA_leg) == "Fe mg/L"] <- "Fe_mgL"
+names(DATA_leg)[names(DATA_leg) == "F mg/L"] <- "F_mgL"
+names(DATA_leg)[names(DATA_leg) == "Cl mg/L"] <- "Cl_mgL"
+names(DATA_leg)[names(DATA_leg) == "NO3 mg/L"] <- "NO3_mgL"
+names(DATA_leg)[names(DATA_leg) == "SO4 mg/L"] <- "SO4_mgL"
+names(DATA_leg)[names(DATA_leg) == "DOC mg/L"] <- "DOC_mgL"
+names(DATA_leg)[names(DATA_leg) == "TDN mg/L"] <- "TDN_mgL"
+names(DATA_leg)[names(DATA_leg) == "NH4 mg/L"] <- "NH4_mgL"
+names(DATA_leg)[names(DATA_leg) == "Alm mg/L"] <- "Alm_mgL"
+names(DATA_leg)[names(DATA_leg) == "Alo mg/L"] <- "Alo_mgL"
+names(DATA_leg)[names(DATA_leg) == "Date"] <- "SampleDate"
+names(DATA_leg)[names(DATA_leg) == "Time"] <- "SampleTime"
+
+names(DATA_leg)[names(DATA_leg) == "Type"] <- "LocationType"
+
+
+names(DATA_pennino)[names(DATA_pennino) == "TMAl_mg/L"] <- "Alm_mgL"
+names(DATA_pennino)[names(DATA_pennino) == "OMAl_mg/L"] <- "Alo_mgL"
+names(DATA_pennino)[names(DATA_pennino) == "IMAl_mg/L"] <- "Ali_mgL"
+
+DATA_leg$GWType <- ifelse(DATA_leg$LocationType == "1", "stream",
+                   ifelse(DATA_leg$LocationType == "2", "stream",
+                   ifelse(DATA_leg$LocationType == "3", "stream",
+                   ifelse(DATA_leg$LocationType == "4", "stream",
+                   ifelse(DATA_leg$LocationType == "5", "stream",
+                   ifelse(DATA_leg$LocationType == "6", "stream",   
+                   ifelse(DATA_leg$LocationType == "G0", "shallow",  
+                   ifelse(DATA_leg$LocationType == "G1", "shallow", 
+                   ifelse(DATA_leg$LocationType == "G2", "shallow",
+                   ifelse(DATA_leg$LocationType == "G3", "shallow", 
+                   ifelse(DATA_leg$LocationType == "G4", "shallow", 
+                   ifelse(DATA_leg$LocationType == "G5", "shallow",
+                   ifelse(DATA_leg$LocationType == "G6", "shallow",
+                   ifelse(DATA_leg$LocationType == "G8", "shallow",
+                   ifelse(DATA_leg$LocationType == "G7", "into_R", 
+                   ifelse(DATA_leg$`deep C screen` == "x", "deep_intoC",
+                                                    NA))))))))))))))))
+
+
+
+```
+
+Filter out unneeded columns
+```{r}
+colnames(DATA_leg)
+
+DATA_leg <-DATA_leg[ , -which(names(DATA_leg) %in% c("WS-#","Notes", "deep C screen"))]
+
+```
+
+Add XY coordinates
+```{r}
+well_coord <-read.csv("~/Documents/VT/Data/MyData/Wells/Well_Info/LegacyWell_coordinates.csv")
+
+DATA_leg <- left_join(DATA_leg, well_coord, by = "Site")
+
+colnames(DATA_leg)
+
+DATA_leg <-DATA_leg[ , -which(names(DATA_leg) %in% c("X.1"))]
+
+```
+
+merge
+```{r}
+#Change the names of the date column
+
+colnames(DATA_leg)
+colnames(DATA_pennino)
+
+
+wells_c<- merge(DATA_leg, DATA_pennino, all= TRUE ) #missing some
+colnames(wells_c)
+
+```
+
+```{r}
+
+write.csv(wells_c, "~/Documents/VT/Data/MyData/Wells/Chemistry/W3_Chemistry_all2020.csv")
+
+```
